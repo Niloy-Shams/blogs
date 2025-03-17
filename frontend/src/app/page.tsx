@@ -1,3 +1,5 @@
+import BlogCardGroup from "@/components/blog-card-group";
+
 // Access environment variable
 console.log(process.env.NEXT_PUBLIC_API_URL)
 // Fetch data from API
@@ -28,7 +30,7 @@ fetchData();
 export default function Home() {
   return (
     <div className="min-h-screen font-[family-name:var(--font-geist-sans)]">
-      
+      <BlogCardGroup />
     </div>
   )
 }
