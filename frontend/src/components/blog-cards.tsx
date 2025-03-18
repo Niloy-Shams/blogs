@@ -15,8 +15,7 @@ async function getBlogs(): Promise<Blog[]> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (!apiUrl) {
-      console.error('API URL is not defined in environment variables');
-      return [];
+      throw new Error('API URL is not defined in environment variables');
     }
     
     const response = await fetch(apiUrl);
@@ -29,7 +28,7 @@ async function getBlogs(): Promise<Blog[]> {
     return data;
   } catch (error) {
     console.error('Error fetching data:', error);
-    return []; // Return empty array on error
+    throw error; // Re-throw the error so the outer try-catch can handle it
   }
 }
 
@@ -40,8 +39,26 @@ function truncateContent(content: string, wordCount = 50): string {
 }
 
 export default async function BlogCards() {
-  const blogs = await getBlogs()
-
+  let blogs: Blog[] = [];
+  try {
+    blogs = await getBlogs();
+  } catch (error) {
+    console.error('Failed to fetch blogs:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    return (
+      <div className="text-center text-lg text-muted-foreground">
+        Failed to fetch blogs. {errorMessage}
+      </div>
+    )
+  }
+  if (blogs.length === 0) {
+    console.log('No blogs found');
+    return (
+      <div className="text-center text-lg text-muted-foreground">
+        No blogs found
+      </div>
+    )
+  }
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {blogs.map((blog, index) => (

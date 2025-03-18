@@ -25,7 +25,9 @@ async function fetchData() {
 }
 
 // Call the function
-fetchData();
+fetchData().catch(error => {
+  console.error("Unhandled promise rejection in fetchData:", error);
+});
 
 export default function Home() {
   return (
