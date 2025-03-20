@@ -2,17 +2,17 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Menu } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { useAuth } from "@/context/auth-context"
 
 interface NavItem {
   title: string
   href: string
-  disabled?: boolean
 }
 
 const navItems: NavItem[] = [
@@ -21,16 +21,12 @@ const navItems: NavItem[] = [
     href: "/",
   },
   {
+    title: "Blog",
+    href: "/blog",
+  },
+  {
     title: "About",
     href: "/about",
-  },
-  {
-    title: "Services",
-    href: "/services",
-  },
-  {
-    title: "Portfolio",
-    href: "/portfolio",
   },
   {
     title: "Contact",
@@ -41,6 +37,14 @@ const navItems: NavItem[] = [
 export function Navbar() {
   const [open, setOpen] = React.useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+  const { isAuthenticated, logout } = useAuth()
+
+  const handleLogout = () => {
+    logout()
+    router.push("/login")
+    router.refresh()
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/20 bg-background/70 backdrop-blur-md px-2 shadow-sm">
@@ -52,7 +56,7 @@ export function Navbar() {
         </div>
 
         {/* Desktop navigation */}
-        <nav className="hidden md:flex gap-6">
+        <nav className="hidden md:flex items-center gap-6">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -65,6 +69,21 @@ export function Navbar() {
               {item.title}
             </Link>
           ))}
+          
+          {isAuthenticated ? (
+            <Button variant="ghost" onClick={handleLogout}>
+              Logout
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link href="/login">
+                <Button variant="ghost">Login</Button>
+              </Link>
+              <Link href="/register">
+                <Button>Register</Button>
+              </Link>
+            </div>
+          )}
         </nav>
 
         {/* Mobile navigation */}
@@ -90,6 +109,24 @@ export function Navbar() {
                   {item.title}
                 </Link>
               ))}
+              
+              {isAuthenticated ? (
+                <Button variant="ghost" onClick={() => {
+                  handleLogout();
+                  setOpen(false);
+                }}>
+                  Logout
+                </Button>
+              ) : (
+                <>
+                  <Link href="/login" onClick={() => setOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start">Login</Button>
+                  </Link>
+                  <Link href="/register" onClick={() => setOpen(false)}>
+                    <Button className="w-full">Register</Button>
+                  </Link>
+                </>
+              )}
             </div>
           </SheetContent>
         </Sheet>
@@ -97,4 +134,3 @@ export function Navbar() {
     </header>
   )
 }
-
