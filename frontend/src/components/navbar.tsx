@@ -1,5 +1,6 @@
 "use client"
 
+import { Plus as PlusIcon } from "lucide-react"
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -69,6 +70,15 @@ export function Navbar() {
               {item.title}
             </Link>
           ))}
+
+          {isAuthenticated && (
+            <Link href="/blog/create">
+              <Button className="hidden md:inline-flex">
+                <PlusIcon className="mr-2 h-4 w-4" />
+                New Post
+              </Button>
+            </Link>
+          )}
           
           {isAuthenticated ? (
             <Button variant="ghost" onClick={handleLogout}>
@@ -109,6 +119,15 @@ export function Navbar() {
                   {item.title}
                 </Link>
               ))}
+
+              {isAuthenticated && (
+                <Link href="/blog/create" onClick={() => setOpen(false)}>
+                  <Button className="w-full justify-start">
+                    <PlusIcon className="mr-2 h-4 w-4" />
+                    New Post
+                  </Button>
+                </Link>
+              )}
               
               {isAuthenticated ? (
                 <Button variant="ghost" onClick={() => {

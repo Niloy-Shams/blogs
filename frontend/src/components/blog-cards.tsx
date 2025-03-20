@@ -5,8 +5,8 @@ import { formatDistanceToNow } from "date-fns"
 interface Blog {
   title: string
   content: string
-  category: number
-  author: number
+  category: string // Changed from number to string
+  author: string   // Changed from number to string
   created_at: string
   status: string
 }
@@ -75,7 +75,7 @@ export default async function BlogCards() {
             <div className="space-y-1">
               <h3 className="text-xl font-bold leading-tight line-clamp-2">{blog.title}</h3>
               <p className="text-sm text-muted-foreground">
-                Author: {blog.author} • {formatDistanceToNow(new Date(blog.created_at), { addSuffix: true })}
+                By {blog.author} • Category: {blog.category} • {formatDistanceToNow(new Date(blog.created_at), { addSuffix: true })}
               </p>
             </div>
           </CardHeader>

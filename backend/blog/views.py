@@ -1,6 +1,6 @@
 from django.shortcuts import render
-from rest_framework import generics, status
-from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAdminUser, OR
+from rest_framework import generics, status, serializers
+from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAdminUser, OR, IsAuthenticated
 from rest_framework.response import Response
 from .models import Category, Post
 from .serializers import CategorySerializer, PostSerializer, UserRegistrationSerializer
@@ -21,6 +21,9 @@ class UserRegistrationView(generics.CreateAPIView):
 class PostList(generics.ListCreateAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.filter(status='published')
+    
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
 
 class PostDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PostSerializer
@@ -30,6 +33,11 @@ class PostDetail(generics.RetrieveUpdateDestroyAPIView):
             status='published',
             pk=self.kwargs['pk']
         )
+    
+    def perform_update(self, serializer):
+        # Preserve the original author when updating
+        post = self.get_object()
+        serializer.save(author=post.author)
         
     def get_permissions(self):
         if self.request.method in SAFE_METHODS:
@@ -42,3 +50,15 @@ class PostDetail(generics.RetrieveUpdateDestroyAPIView):
 class CategoryList(generics.ListCreateAPIView):
     serializer_class = CategorySerializer
     queryset = Category.objects.all()
+
+class CategoryDropdownView(generics.ListAPIView):
+    serializer_class = serializers.Serializer
+    permission_classes = [AllowAny]
+    
+    def get_queryset(self):
+        return Category.objects.all()
+    
+    def list(self, request, *args, **kwargs):
+        categories = self.get_queryset()
+        data = [{'id': category.id, 'name': category.name} for category in categories]
+        return Response(data)

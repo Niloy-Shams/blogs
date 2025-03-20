@@ -21,10 +21,29 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 class PostSerializer(serializers.ModelSerializer):
+    author = serializers.StringRelatedField(read_only=True)
+    category = serializers.StringRelatedField(read_only=True)
+    category_id = serializers.IntegerField(write_only=True)
+    
     class Meta:
         model = Post
-        fields = ['title', 'content', 'category', 'author', 'created_at', 'status']
-        read_only_fields = ['created_at']
+        fields = ['id', 'title', 'content', 'category', 'category_id', 'author', 'created_at', 'status']
+        read_only_fields = ['created_at', 'author']
+    
+    def create(self, validated_data):
+        # Get the category from the category_id
+        category_id = validated_data.pop('category_id')
+        try:
+            category = Category.objects.get(id=category_id)
+        except Category.DoesNotExist:
+            raise serializers.ValidationError({"category_id": "Category not found."})
+        
+        # Create the post with the category and user
+        post = Post.objects.create(
+            category=category,
+            **validated_data
+        )
+        return post
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
