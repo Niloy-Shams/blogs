@@ -3,8 +3,9 @@ from rest_framework import generics, status, serializers
 from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAdminUser, OR, IsAuthenticated
 from rest_framework.response import Response
 from .models import Category, Post
-from .serializers import CategorySerializer, PostSerializer, UserRegistrationSerializer
+from .serializers import CategorySerializer, CustomTokenObtainPairSerializer, PostSerializer, UserRegistrationSerializer
 from .permissions import IsAuthor
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 # Create your views here.
 class UserRegistrationView(generics.CreateAPIView):
@@ -62,3 +63,7 @@ class CategoryDropdownView(generics.ListAPIView):
         categories = self.get_queryset()
         data = [{'id': category.id, 'name': category.name} for category in categories]
         return Response(data)
+    
+# custom view for jwt payload
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
