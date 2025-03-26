@@ -30,7 +30,7 @@ const formSchema = z.object({
 
 export function LoginForm() {
     const router = useRouter();
-    const { login } = useAuth();  // Add this line
+    const { login } = useAuth();
     const [isLoading, setIsLoading] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -45,33 +45,50 @@ export function LoginForm() {
     setIsLoading(true)
 
     try {
-      const response = await fetch("http://localhost:8000/api/token/", {
+      // Remove any trailing slashes from the API URL
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
+      const apiUrl = `${baseUrl}/token/`;
+      console.log('Attempting login to:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json",
         },
         body: JSON.stringify(values),
+        credentials: 'include',
       })
+
+      const data = await response.json();
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || "Invalid credentials")
+        console.error('Login response error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: data
+        });
+        throw new Error(data.detail || "Invalid credentials");
       }
 
-      const data = await response.json()
+      if (!data.access) {
+        console.error('No access token in response:', data);
+        throw new Error("Invalid response from server");
+      }
+
+      console.log('Login successful, token received');
       
-      // Store tokens in localStorage
-      login(data.access, data.refresh);
+      // Only store access token, refresh token is handled by HTTP-only cookie
+      login(data.access);
       
-      toast.success("Logged in successfully", {
-        description: "Welcome back!",
-      })
+      toast.success("Logged in successfully")
       
       router.push("/")
       router.refresh()
     } catch (error) {
+      console.error("Login error details:", error)
       toast.error("Login failed", {
-        description: error instanceof Error ? error.message : "Something went wrong",
+        description: error instanceof Error ? error.message : "Please check your credentials and try again",
       })
     } finally {
       setIsLoading(false)

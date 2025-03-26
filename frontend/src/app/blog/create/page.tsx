@@ -108,29 +108,55 @@ export default function CreateBlogPage() {
       console.log("Access token:", accessToken)
       console.log("Form values:", values)
       
-      const API_URL = process.env.NEXT_PUBLIC_API_URL
+      const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '')
       
-      const response = await fetch(`${API_URL}/`, {
+      // Add console log to see the full URL
+      const url = `${API_URL}/`
+      console.log('Making request to:', url)
+      
+      const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `JWT ${accessToken}`  // Make sure this format is correct
+          "Authorization": `Bearer ${accessToken}`
         },
         body: JSON.stringify(values),
+        credentials: 'include',
       })
 
       console.log("Response status:", response.status)
       
+      const contentType = response.headers.get("content-type");
+      console.log("Response content type:", contentType);
+
       if (!response.ok) {
-        const errorData = await response.json()
-        console.error("Error response:", errorData)
-        throw new Error(errorData.detail || "Failed to create blog post")
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          // Only try to parse as JSON if the content type is JSON
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            console.error("Error response:", {
+              status: response.status,
+              statusText: response.statusText,
+              data: errorData
+            });
+            errorMessage = errorData.detail || JSON.stringify(errorData);
+          } else {
+            // If not JSON, get the text content
+            const textContent = await response.text();
+            console.error("Error response (text):", textContent);
+            errorMessage = `Server error: ${response.status} ${response.statusText}`;
+          }
+        } catch (parseError) {
+          console.error("Error parsing response:", parseError);
+        }
+        throw new Error(errorMessage);
       }
 
-      const data = await response.json()
-      console.log("Created blog post:", data)
-      toast.success("Blog post created successfully!")
-      router.push("/")
+      const data = await response.json();
+      console.log("Created blog post:", data);
+      toast.success("Blog post created successfully!");
+      router.push("/");
     } catch (error) {
       console.error("Error creating blog post:", error)
       toast.error(error instanceof Error ? error.message : "An error occurred")

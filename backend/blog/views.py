@@ -5,7 +5,10 @@ from rest_framework.response import Response
 from .models import Category, Post
 from .serializers import CategorySerializer, CustomTokenObtainPairSerializer, PostSerializer, UserRegistrationSerializer
 from .permissions import IsAuthor
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from datetime import datetime, timedelta
+from django.conf import settings
+from rest_framework_simplejwt.exceptions import InvalidToken
 
 # Create your views here.
 class UserRegistrationView(generics.CreateAPIView):
@@ -67,3 +70,41 @@ class CategoryDropdownView(generics.ListAPIView):
 # custom view for jwt payload
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        
+        # Set refresh token in HTTP-only cookie
+        if response.status_code == 200:
+            refresh_token = response.data.pop('refresh')  # Remove refresh from response data
+            response.set_cookie(
+                'refresh_token',
+                refresh_token,
+                max_age=5 * 24 * 60 * 60,  # 5 days
+                httponly=True,
+                samesite='Lax',
+                secure=not settings.DEBUG  # True in production
+            )
+        
+        return response
+
+class CustomTokenRefreshView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get('refresh_token')
+        
+        if not refresh_token:
+            return Response(
+                {"detail": "No refresh token found in cookies."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        request.data['refresh'] = refresh_token
+        
+        try:
+            response = super().post(request, *args, **kwargs)
+            return response
+        except InvalidToken:
+            return Response(
+                {"detail": "Invalid refresh token."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )

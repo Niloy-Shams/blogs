@@ -7,7 +7,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 interface AuthContextType {
   isAuthenticated: boolean;
   accessToken: string | null;
-  login: (accessToken: string, refreshToken: string) => void;
+  login: (accessToken: string) => void;
   logout: () => void;
 }
 
@@ -19,35 +19,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   useEffect(() => {
     // Check if user is authenticated on client side
-    const token = localStorage.getItem("accessToken");
+    const token = sessionStorage.getItem("accessToken");
     if (token) {
       setAccessToken(token);
       setIsAuthenticated(true);
-      
-      // Also set cookie for middleware access
-      document.cookie = `accessToken=${token}; path=/; max-age=${60*60*24*7}; SameSite=Lax`;
     }
   }, []);
 
-  const login = (accessToken: string, refreshToken: string) => {
-    // Save to localStorage
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
-    
-    // Also save as cookie for middleware
-    document.cookie = `accessToken=${accessToken}; path=/; max-age=${60*60*24*7}; SameSite=Lax`;
-    
+  const login = (accessToken: string) => {
+    // Store access token in sessionStorage
+    sessionStorage.setItem("accessToken", accessToken);
     setAccessToken(accessToken);
     setIsAuthenticated(true);
   };
 
   const logout = () => {
-    // Clear localStorage
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
+    // Clear tokens
+    sessionStorage.removeItem("accessToken");
     
-    // Clear cookies
-    document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+    // Clear the refresh token cookie by setting it to expire
+    document.cookie = "refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
     
     setAccessToken(null);
     setIsAuthenticated(false);
@@ -69,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
