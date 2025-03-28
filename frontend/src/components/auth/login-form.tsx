@@ -48,7 +48,6 @@ export function LoginForm() {
       // Remove any trailing slashes from the API URL
       const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
       const apiUrl = `${baseUrl}/token/`;
-      console.log('Attempting login to:', apiUrl);
       
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -63,23 +62,15 @@ export function LoginForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error('Login response error:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: data
-        });
         throw new Error(data.detail || "Invalid credentials");
       }
 
       if (!data.access) {
-        console.error('No access token in response:', data);
         throw new Error("Invalid response from server");
       }
-
-      console.log('Login successful, token received');
       
-      // Only store access token, refresh token is handled by HTTP-only cookie
-      login(data.access);
+      // Pass both access token, username and admin status to login
+      login(data.access, values.username, data.is_admin || false);
       
       toast.success("Logged in successfully")
       

@@ -58,7 +58,9 @@ export function RegisterForm() {
     setIsLoading(true)
 
     try {
-      const response = await fetch("http://localhost:8000/api/register/", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
+      const apiUrl = `${baseUrl}/register/`;
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -95,7 +97,7 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Username</FormLabel>
               <FormControl>
-                <Input placeholder="johndoe" {...field} />
+                <Input placeholder="Username" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -108,7 +110,7 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="john@example.com" {...field} />
+                <Input type="email" placeholder="email@example.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -122,7 +124,7 @@ export function RegisterForm() {
               <FormItem className="flex-1">
                 <FormLabel>First Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="John" {...field} />
+                  <Input placeholder="First" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -135,7 +137,7 @@ export function RegisterForm() {
               <FormItem className="flex-1">
                 <FormLabel>Last Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="Doe" {...field} />
+                  <Input placeholder="Last" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

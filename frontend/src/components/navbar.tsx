@@ -21,25 +21,13 @@ const navItems: NavItem[] = [
     title: "Home",
     href: "/",
   },
-  {
-    title: "Blog",
-    href: "/blog",
-  },
-  {
-    title: "About",
-    href: "/about",
-  },
-  {
-    title: "Contact",
-    href: "/contact",
-  },
 ]
 
 export function Navbar() {
   const [open, setOpen] = React.useState(false)
   const pathname = usePathname()
   const router = useRouter()
-  const { isAuthenticated, logout } = useAuth()
+  const { isAuthenticated, logout, user } = useAuth()
 
   const handleLogout = () => {
     logout()
@@ -81,18 +69,23 @@ export function Navbar() {
           )}
           
           {isAuthenticated ? (
-            <Button variant="ghost" onClick={handleLogout}>
-              Logout
-            </Button>
+            <>
+              <span className="text-sm font-medium text-muted-foreground">
+                {user?.username}
+              </span>
+              <Button variant="ghost" onClick={handleLogout}>
+                Logout
+              </Button>
+            </>
           ) : (
-            <div className="flex items-center gap-2">
+            <>
               <Link href="/login">
                 <Button variant="ghost">Login</Button>
               </Link>
               <Link href="/register">
-                <Button>Register</Button>
+                <Button variant="ghost">Register</Button>
               </Link>
-            </div>
+            </>
           )}
         </nav>
 
@@ -130,12 +123,17 @@ export function Navbar() {
               )}
               
               {isAuthenticated ? (
-                <Button variant="ghost" onClick={() => {
-                  handleLogout();
-                  setOpen(false);
-                }}>
-                  Logout
-                </Button>
+                <>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {user?.username}
+                  </span>
+                  <Button variant="ghost" onClick={() => {
+                    handleLogout();
+                    setOpen(false);
+                  }}>
+                    Logout
+                  </Button>
+                </>
               ) : (
                 <>
                   <Link href="/login" onClick={() => setOpen(false)}>

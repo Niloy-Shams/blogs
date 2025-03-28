@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { toast } from "sonner"
+import { use } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -46,11 +47,22 @@ interface Category {
   name: string;
 }
 
-export default function CreateBlogPage() {
+interface BlogPost {
+  id: number;
+  title: string;
+  content: string;
+  category_id: string;
+  status: string;
+  author: string;
+}
+
+export default function EditBlogPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
   const router = useRouter()
-  const { isAuthenticated, accessToken } = useAuth()
+  const { isAuthenticated, accessToken, user } = useAuth()
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [blog, setBlog] = useState<BlogPost | null>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -65,9 +77,55 @@ export default function CreateBlogPage() {
   useEffect(() => {
     // Redirect if not authenticated
     if (!isAuthenticated) {
-      toast.error("You must be logged in to create a blog post")
+      toast.error("You must be logged in to edit a blog post")
       router.push("/login")
       return
+    }
+
+    // Fetch blog post and check authorization
+    const fetchBlog = async () => {
+      if (!accessToken) {
+        toast.error("You must be logged in to edit a blog post");
+        router.push("/login");
+        return;
+      }
+
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
+        const response = await fetch(`${baseUrl}/posts/${resolvedParams.id}/`, {
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Accept": "application/json",
+          },
+        })
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.detail || `Failed to fetch blog post: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        setBlog(data);
+
+        // Check if user is authorized to edit
+        if (!user?.isAdmin && user?.username !== data.author) {
+          toast.error("You are not authorized to edit this post")
+          router.push("/")
+          return
+        }
+
+        // Set form values
+        form.reset({
+          title: data.title,
+          content: data.content,
+          category_id: data.category_id,
+          status: data.status,
+        })
+      } catch (error) {
+        console.error("Error fetching blog post:", error);
+        toast.error(error instanceof Error ? error.message : "Failed to load blog post");
+        router.push("/");
+      }
     }
 
     // Fetch categories
@@ -82,12 +140,11 @@ export default function CreateBlogPage() {
         })
         
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || "Failed to fetch categories");
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.detail || `Failed to fetch categories: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
-        console.log('Fetched categories:', data);
         setCategories(data);
       } catch (error) {
         console.error("Error fetching categories:", error);
@@ -95,12 +152,13 @@ export default function CreateBlogPage() {
       }
     }
     
+    fetchBlog()
     fetchCategories()
-  }, [isAuthenticated, router, accessToken])
+  }, [isAuthenticated, router, accessToken, user, resolvedParams.id, form])
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!isAuthenticated || !accessToken) {
-      toast.error("You must be logged in to create a blog post")
+      toast.error("You must be logged in to edit a blog post")
       router.push("/login")
       return
     }
@@ -108,73 +166,48 @@ export default function CreateBlogPage() {
     setIsLoading(true)
 
     try {
-      // Add console logs to debug
-      console.log("Access token:", accessToken)
-      console.log("Form values:", values)
-      
-      const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '')
-      
-      // Add console log to see the full URL
-      const url = `${API_URL}/posts/`
-      console.log('Making request to:', url)
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
+      const url = `${baseUrl}/posts/${resolvedParams.id}/`
       
       const response = await fetch(url, {
-        method: "POST",
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`
+          "Authorization": `Bearer ${accessToken}`,
+          "Accept": "application/json",
         },
         body: JSON.stringify(values),
-        credentials: 'include',
       })
 
-      console.log("Response status:", response.status)
-      
-      const contentType = response.headers.get("content-type");
-      console.log("Response content type:", contentType);
-
       if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          // Only try to parse as JSON if the content type is JSON
-          if (contentType && contentType.includes('application/json')) {
-            const errorData = await response.json();
-            console.error("Error response:", {
-              status: response.status,
-              statusText: response.statusText,
-              data: errorData
-            });
-            errorMessage = errorData.detail || JSON.stringify(errorData);
-          } else {
-            // If not JSON, get the text content
-            const textContent = await response.text();
-            console.error("Error response (text):", textContent);
-            errorMessage = `Server error: ${response.status} ${response.statusText}`;
-          }
-        } catch (parseError) {
-          console.error("Error parsing response:", parseError);
-        }
-        throw new Error(errorMessage);
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.detail || `Failed to update blog post: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
-      console.log("Created blog post:", data);
-      toast.success("Blog post created successfully!");
-      router.push("/");
+      toast.success("Blog post updated successfully!")
+      router.push("/")
     } catch (error) {
-      console.error("Error creating blog post:", error)
-      toast.error(error instanceof Error ? error.message : "An error occurred")
+      console.error("Error updating blog post:", error);
+      toast.error(error instanceof Error ? error.message : "An error occurred");
     } finally {
       setIsLoading(false)
     }
   }
 
+  if (!blog) {
+    return (
+      <div className="text-center py-10">
+        Loading...
+      </div>
+    )
+  }
+
   return (
     <div className="container max-w-3xl py-10 mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Create New Blog Post</h1>
+        <h1 className="text-3xl font-bold">Edit Blog Post</h1>
         <p className="text-muted-foreground mt-2">
-          Share your thoughts and ideas with the world
+          Make changes to your blog post
         </p>
       </div>
 
@@ -292,11 +325,11 @@ export default function CreateBlogPage() {
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Creating..." : "Create Blog Post"}
+              {isLoading ? "Updating..." : "Update Blog Post"}
             </Button>
           </div>
         </form>
       </Form>
     </div>
   )
-}
+} 

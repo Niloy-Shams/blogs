@@ -33,6 +33,8 @@ class PostDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PostSerializer
     
     def get_queryset(self):
+        if self.request.user.is_staff:
+            return Post.objects.filter(pk=self.kwargs['pk'])
         return Post.objects.filter(
             status='published',
             pk=self.kwargs['pk']
@@ -85,6 +87,15 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 samesite='Lax',
                 secure=not settings.DEBUG  # True in production
             )
+            
+            # Get user from serializer
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = serializer.user
+            
+            # Add is_admin to response data
+            response.data['is_admin'] = user.is_staff
+            print(f"User {user.username} is_staff: {user.is_staff}")
         
         return response
 
