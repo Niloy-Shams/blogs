@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useAuth } from "@/context/auth-context"
+import SearchBar from "./SearchBar"
 
 interface NavItem {
   title: string
@@ -35,6 +36,10 @@ export function Navbar() {
     router.refresh()
   }
 
+  const handleSearch = (query: string) => {
+    router.push(`/search?q=${encodeURIComponent(query)}`)
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/20 bg-background/70 backdrop-blur-md px-2 shadow-sm">
       <div className="container flex h-16 items-center justify-between mx-auto">
@@ -58,6 +63,10 @@ export function Navbar() {
               {item.title}
             </Link>
           ))}
+
+          <div className="w-64">
+            <SearchBar onSearch={handleSearch} />
+          </div>
 
           {isAuthenticated && (
             <Link href="/blog/create">
@@ -113,6 +122,13 @@ export function Navbar() {
                 </Link>
               ))}
 
+              <div className="w-full">
+                <SearchBar onSearch={(query) => {
+                  handleSearch(query);
+                  setOpen(false);
+                }} />
+              </div>
+
               {isAuthenticated && (
                 <Link href="/blog/create" onClick={() => setOpen(false)}>
                   <Button className="w-full justify-start">
@@ -140,7 +156,7 @@ export function Navbar() {
                     <Button variant="ghost" className="w-full justify-start">Login</Button>
                   </Link>
                   <Link href="/register" onClick={() => setOpen(false)}>
-                    <Button className="w-full">Register</Button>
+                    <Button variant="ghost" className="w-full">Register</Button>
                   </Link>
                 </>
               )}

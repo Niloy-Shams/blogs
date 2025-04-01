@@ -25,6 +25,8 @@ class UserRegistrationView(generics.CreateAPIView):
 class PostList(generics.ListCreateAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.filter(status='published')
+    filterset_fields = ['category', 'author']
+    search_fields = ['title', 'content']
     
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)

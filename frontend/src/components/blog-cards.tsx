@@ -20,6 +20,11 @@ interface Blog {
   status: string;
 }
 
+interface BlogCardsProps {
+  posts?: Blog[];
+  fetchPosts?: boolean;
+}
+
 async function getBlogs(): Promise<Blog[]> {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
@@ -34,7 +39,7 @@ async function getBlogs(): Promise<Blog[]> {
     
     const data = await response.json();
     console.log('Fetched data:', data);
-    return data;
+    return data.results || [];
   } catch (error) {
     console.error('Error fetching data:', error);
     throw error;
@@ -47,14 +52,16 @@ function truncateContent(content: string, wordCount = 50): string {
   return words.slice(0, wordCount).join(" ") + "..."
 }
 
-export default function BlogCards() {
+export default function BlogCards({ posts: initialPosts, fetchPosts = true }: BlogCardsProps) {
   const { user, accessToken } = useAuth();
-  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [blogs, setBlogs] = useState<Blog[]>(initialPosts || []);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(fetchPosts);
 
   useEffect(() => {
     const fetchBlogs = async () => {
+      if (!fetchPosts) return;
+      
       try {
         const fetchedBlogs = await getBlogs();
         setBlogs(fetchedBlogs);
@@ -67,7 +74,7 @@ export default function BlogCards() {
     };
 
     fetchBlogs();
-  }, []);
+  }, [fetchPosts]);
 
   const handleDelete = async (id: number) => {
     try {
@@ -86,7 +93,6 @@ export default function BlogCards() {
       }
 
       toast.success('Post deleted successfully');
-      // Remove the deleted blog from the state instead of reloading
       setBlogs(blogs.filter(blog => blog.id !== id));
     } catch (error) {
       console.error('Error deleting post:', error);
