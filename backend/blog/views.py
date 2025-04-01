@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from .models import Category, Post
 from .serializers import CategorySerializer, CustomTokenObtainPairSerializer, PostSerializer, UserRegistrationSerializer
 from .permissions import IsAuthor
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenBlacklistView
 from datetime import datetime, timedelta
 from django.conf import settings
 from rest_framework_simplejwt.exceptions import InvalidToken
@@ -119,3 +119,32 @@ class CustomTokenRefreshView(TokenRefreshView):
                 {"detail": "Invalid refresh token."},
                 status=status.HTTP_401_UNAUTHORIZED
             )
+
+class CustomTokenBlacklistView(TokenBlacklistView):
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get('refresh_token')
+        print(f"Received blacklist request. Refresh token present: {bool(refresh_token)}")
+        
+        if not refresh_token:
+            print("No refresh token found in cookies")
+            return Response(
+                {"detail": "No refresh token found in cookies."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        request.data['refresh'] = refresh_token
+        
+        try:
+            print("Attempting to blacklist token...")
+            response = super().post(request, *args, **kwargs)
+            print("Token blacklisted successfully")
+            return response
+        except InvalidToken as e:
+            print(f"Invalid token error: {str(e)}")
+            return Response(
+                {"detail": "Invalid refresh token."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        except Exception as e:
+            print(f"Unexpected error during token blacklisting: {str(e)}")
+            raise

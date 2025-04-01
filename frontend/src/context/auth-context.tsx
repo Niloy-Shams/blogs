@@ -1,4 +1,4 @@
-"use client";
++"use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 // import { Cookies } from 'next-client-cookies';
@@ -90,15 +90,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticated(true);
   };
 
-  const logout = () => {
-    // Clear tokens and user data
-    sessionStorage.removeItem("accessToken");
-    sessionStorage.removeItem("username");
-    sessionStorage.removeItem("isAdmin");
-    document.cookie = "refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
-    setAccessToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
+  const logout = async () => {
+    try {
+      // Call the blacklist endpoint to invalidate the refresh token
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
+      console.log('Calling blacklist endpoint...');
+      const response = await fetch(`${baseUrl}/token/blacklist/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Blacklist endpoint error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
+        throw new Error(errorData?.detail || 'Failed to blacklist token');
+      }
+      
+      console.log('Token blacklisted successfully');
+    } catch (error) {
+      console.error('Error blacklisting token:', error);
+    } finally {
+      // Clear tokens and user data
+      sessionStorage.removeItem("accessToken");
+      sessionStorage.removeItem("username");
+      sessionStorage.removeItem("isAdmin");
+      document.cookie = "refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+      setAccessToken(null);
+      setUser(null);
+      setIsAuthenticated(false);
+    }
   };
 
   return (
